@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Decision · {{ app_name }}{% endblock %}
+
+{% set palette = {
+  'Approve':       {'bg':'bg-emerald-50','border':'border-emerald-200','text':'text-emerald-700','bar':'bg-emerald-500','badge':'bg-emerald-600','icon':'✓'},
+  'Reject':        {'bg':'bg-red-50','border':'border-red-200','text':'text-red-700','bar':'bg-red-500','badge':'bg-red-600','icon':'✕'},
+  'Manual Review': {'bg':'bg-amber-50','border':'border-amber-200','text':'text-amber-700','bar':'bg-amber-500','badge':'bg-amber-500','icon':'⏳'}
+} %}
+{% set c = palette[decision] %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <h1 class="text-2xl font-bold text-slate-900">Credit Decision</h1>
+  <span class="text-sm text-slate-400">Application #{{ application_id }}</span>
+</div>
+
+<div class="rounded-xl border {{ c.border }} {{ c.bg }} shadow-sm overflow-hidden mb-6">
+  <div class="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
+    <div class="inline-flex h-20 w-20 items-center justify-center rounded-full {{ c.badge }} text-white text-4xl shadow-lg">
+      {{ c.icon }}
+    </div>
+    <div class="text-center sm:text-left">
+      <p class="text-sm uppercase tracking-wide text-slate-500">Decision</p>
+      <p class="text-3xl font-extrabold {{ c.text }}">{{ decision }}</p>
+      {% if decision == 'Manual Review' %}
+        <p class="text-sm text-slate-600 mt-1">This application falls in the uncertainty band and needs a manual underwriting review.</p>
+      {% elif decision == 'Approve' %}
+        <p class="text-sm text-slate-600 mt-1">Applicant meets the automated approval criteria.</p>
+      {% else %}
+        <p class="text-sm text-slate-600 mt-1">Applicant exceeds the acceptable default-risk threshold.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+  <!-- Credit score -->
+  <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 text-center">
+    <p class="text-sm text-slate-500 mb-2">Credit Score</p>
+    <p class="text-5xl font-extrabold text-slate-900">{{ credit_score }}</p>
+    <p class="text-xs text-slate-400 mt-1">scale 300–850</p>
+  </div>
+
+  <!-- Risk grade -->
+  <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 text-center">
+    <p class="text-sm text-slate-500 mb-2">Risk Grade</p>
+    <p class="text-5xl font-extrabold {{ c.text }}">{{ risk_grade }}</p>
+    <p class="text-xs text-slate-400 mt-1">A (lowest risk) → F</p>
+  </div>
+
+  <!-- Probability of default -->
+  <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+    <p class="text-sm text-slate-500 mb-2">Probability of Default</p>
+    <p class="text-4xl font-extrabold text-slate-900">{{ probability_pct }}%</p>
+    <div class="mt-3 h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+      <div class="h-3 rounded-full {{ c.bar }}" style="width: {{ probability_pct }}%"></div>
+    </div>
+    <div class="flex justify-between text-xs text-slate-400 mt-1">
+      <span>0%</span><span>Risk level</span><span>100%</span>
+    </div>
+  </div>
+</div>
+
+<div class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 mb-6 text-sm text-slate-500 flex flex-wrap gap-x-8 gap-y-1">
+  <span>Model: <span class="font-medium text-slate-700">{{ model_version }}</span></span>
+  <span>P(repay): <span class="font-medium text-slate-700">{{ (100 - probability_pct) | round(1) }}%</span></span>
+  <span>Decision rule: Approve ≥ 0.63 · Reject ≤ 0.53 · else Review (P of being a good customer)</span>
+</div>
+
+<div class="flex gap-3">
+  <a href="/" class="px-5 py-2.5 rounded-lg bg-brand-600 text-white font-medium text-sm shadow hover:bg-brand-700 transition">New Application</a>
+  <a href="/applications" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-600 text-sm hover:bg-slate-100 transition">View History</a>
+</div>
+{% endblock %}

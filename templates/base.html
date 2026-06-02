@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        brand: { 50:'#eef4ff',100:'#d9e6ff',500:'#2563eb',600:'#1d4ed8',700:'#1e40af',900:'#172554' }
+      }}}
+    }
+  </script>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body class="h-full bg-slate-50 text-slate-800 antialiased">
+  <nav class="bg-brand-900 text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="flex h-16 items-center justify-between">
+        <a href="/" class="flex items-center gap-2 font-semibold text-lg">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">🏦</span>
+          {{ app_name }}
+        </a>
+        <div class="flex items-center gap-1 text-sm">
+          <a href="/" class="px-3 py-2 rounded-md hover:bg-white/10 transition">New Application</a>
+          <a href="/applications" class="px-3 py-2 rounded-md hover:bg-white/10 transition">History</a>
+          <a href="/health" class="px-3 py-2 rounded-md hover:bg-white/10 transition">Health</a>
+          <a href="/docs" class="px-3 py-2 rounded-md hover:bg-white/10 transition opacity-80">API</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-center text-xs text-slate-400">
+    Credit Risk Platform · CAMPARI WoE + Logistic Regression · For demonstration only — not a lending decision.
+  </footer>
+</body>
+</html>

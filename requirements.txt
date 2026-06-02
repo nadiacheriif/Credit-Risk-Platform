@@ -1,0 +1,28 @@
+# ---- Web / API ----
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+jinja2==3.1.4
+python-multipart==0.0.20
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# ---- Database ----
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+alembic==1.14.0          # versioned, auditable schema migrations
+
+# ---- ML / inference (pinned for model.pkl parity) ----
+numpy==1.26.4
+pandas==2.1.4
+scikit-learn==1.6.1
+scorecardpy==0.1.9.7
+joblib==1.5.3
+setuptools<81            # scorecardpy still imports pkg_resources
+
+# ---- Experiment tracking ----
+mlflow==2.19.0
+
+# ---- Tests ----
+pytest==8.3.4
+httpx==0.28.1
+testcontainers[postgresql]==4.9.0   # ephemeral Postgres for the test suite

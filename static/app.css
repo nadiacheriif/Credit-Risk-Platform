@@ -1,0 +1,5 @@
+/* Small project-specific overrides on top of Tailwind (loaded via CDN). */
+:root { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+/* Smooth the risk progress bar fill. */
+.h-3 { transition: width .4s ease; }

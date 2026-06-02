@@ -1,0 +1,37 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+
+# ---- Secrets / local config ----
+.env
+.claude/settings.local.json
+
+# ---- Databases / local data ----
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- MLflow local runs ----
+mlruns/
+mlartifacts/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ---- Leftover empty scaffold dir ----
+model/
+
+# NOTE: ml/*.pkl ARE tracked on purpose — they are the deployed model artifacts.
+# Data/ and Notebook/ are tracked too (the parity test reads Data/).

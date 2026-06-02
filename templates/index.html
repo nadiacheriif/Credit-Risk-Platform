@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}New Loan Application · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Loan Application</h1>
+  <p class="text-slate-500 mt-1">Enter applicant details to get an instant risk decision.</p>
+</div>
+
+{% if errors %}
+<div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+  <p class="font-medium text-red-800 mb-1">Please correct the following:</p>
+  <ul class="list-disc list-inside text-sm text-red-700">
+    {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<form method="post" action="/predict" class="space-y-6">
+  {% for section in sections %}
+  <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <header class="border-b border-slate-100 px-5 py-3">
+      <h2 class="font-semibold text-slate-800">{{ section.title }}</h2>
+    </header>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-5">
+      {% for field in section.fields %}
+      <div>
+        {% if field in numeric_fields %}
+          {% set meta = numeric_fields[field] %}
+          <label class="block text-sm font-medium text-slate-700 mb-1">{{ meta.label }}</label>
+          <input type="number" name="{{ field }}"
+                 value="{{ defaults[field] }}"
+                 min="{{ meta.min }}" max="{{ meta.max }}" required
+                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none" />
+          <p class="text-xs text-slate-400 mt-1">Range {{ meta.min }}–{{ meta.max }}</p>
+        {% else %}
+          <label class="block text-sm font-medium text-slate-700 mb-1">{{ categorical_labels[field] }}</label>
+          <select name="{{ field }}" required
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white
+                         focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none">
+            {% for code, label in categorical_fields[field].items() %}
+            <option value="{{ code }}" {% if defaults[field] == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+
+  <div class="flex items-center justify-end gap-3">
+    <button type="reset" class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 text-sm hover:bg-slate-100 transition">Reset</button>
+    <button type="submit" class="px-6 py-2.5 rounded-lg bg-brand-600 text-white font-medium text-sm shadow hover:bg-brand-700 transition">
+      Evaluate Application →
+    </button>
+  </div>
+</form>
+{% endblock %}

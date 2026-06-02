@@ -53,6 +53,14 @@ class LoanApplication(BaseModel):
     model_config = {"json_schema_extra": {"example": example_application()}}
 
 
+class Contribution(BaseModel):
+    field: str
+    label: str
+    value: str
+    woe: float
+    contribution: float   # signed: >0 lowers risk, <0 raises risk
+
+
 class PredictionResult(BaseModel):
     decision: str
     probability_default: float
@@ -60,11 +68,19 @@ class PredictionResult(BaseModel):
     credit_score: int
     risk_grade: str
     model_version: str
+    contributions: list[Contribution] = []
 
 
 class PredictionResponse(BaseModel):
     application_id: int
     prediction: PredictionResult
+
+
+class ExplanationResponse(BaseModel):
+    application_id: int
+    explanation: str | None       # None when the LLM explainer is unavailable
+    reasons_increasing_risk: list[Contribution]
+    reasons_lowering_risk: list[Contribution]
 
 
 class ApplicationRecord(BaseModel):
@@ -84,3 +100,4 @@ class HealthResponse(BaseModel):
     model_loaded: bool
     database: str
     mlflow: str
+    explainer: str

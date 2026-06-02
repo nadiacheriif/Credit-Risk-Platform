@@ -67,6 +67,72 @@
   <span>Decision rule: Approve ≥ 0.63 · Reject ≤ 0.53 · else Review (P of being a good customer)</span>
 </div>
 
+{# ---- Explainability: deterministic reason codes ---- #}
+{% set all_reasons = reasons_increasing_risk + reasons_lowering_risk %}
+{% set maxc = (all_reasons | map(attribute='contribution') | map('abs') | list | max) if all_reasons else 1 %}
+
+<div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 mb-6">
+  <h2 class="font-semibold text-slate-800 mb-1">Why this decision</h2>
+  <p class="text-xs text-slate-400 mb-4">Top drivers of the score (model contribution = coefficient × weight-of-evidence).</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <p class="text-sm font-medium text-red-700 mb-2">▲ Increasing risk</p>
+      <div class="space-y-2">
+        {% for r in reasons_increasing_risk %}
+        <div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-700">{{ r.label }}</span>
+            <span class="text-slate-400">{{ r.value }}</span>
+          </div>
+          <div class="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-1">
+            <div class="h-2 rounded-full bg-red-500" style="width: {{ (r.contribution | abs / maxc * 100) | round(0) }}%"></div>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400">No significant risk-increasing factors.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <p class="text-sm font-medium text-emerald-700 mb-2">▼ Lowering risk</p>
+      <div class="space-y-2">
+        {% for r in reasons_lowering_risk %}
+        <div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-700">{{ r.label }}</span>
+            <span class="text-slate-400">{{ r.value }}</span>
+          </div>
+          <div class="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-1">
+            <div class="h-2 rounded-full bg-emerald-500" style="width: {{ (r.contribution | abs / maxc * 100) | round(0) }}%"></div>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400">No significant risk-lowering factors.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- AI narrative: lazy-loaded so the slow local LLM never blocks the decision ---- #}
+  {% if explainer_enabled %}
+  <div class="mt-6 pt-5 border-t border-slate-100">
+    <p class="text-sm font-medium text-brand-700 mb-2 flex items-center gap-2">
+      <span class="inline-flex h-5 w-5 items-center justify-center rounded bg-brand-100 text-brand-700 text-xs">AI</span>
+      Plain-English summary
+    </p>
+    <div hx-get="/explain/{{ application_id }}" hx-trigger="load" hx-swap="innerHTML"
+         class="text-sm text-slate-600 leading-relaxed">
+      <span class="inline-flex items-center gap-2 text-slate-400">
+        <span class="h-3 w-3 rounded-full border-2 border-slate-300 border-t-brand-500 animate-spin"></span>
+        Generating explanation…
+      </span>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
 <div class="flex gap-3">
   <a href="/" class="px-5 py-2.5 rounded-lg bg-brand-600 text-white font-medium text-sm shadow hover:bg-brand-700 transition">New Application</a>
   <a href="/applications" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-600 text-sm hover:bg-slate-100 transition">View History</a>

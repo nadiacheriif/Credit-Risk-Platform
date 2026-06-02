@@ -23,15 +23,19 @@ affects the Approve/Reject/Review decision (which is probability-based).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 import joblib
 
 from app.core.config import settings
 from ml.preprocess import Preprocessor
+from ml.reference import field_label, humanize_value
 
 # Score display clamp (keeps the UI gauge in a sane band)
 SCORE_MIN, SCORE_MAX = 300, 850
+
+# How many drivers to surface as reason codes per direction.
+TOP_REASONS = 3
 
 
 @dataclass
@@ -42,9 +46,24 @@ class InferenceResult:
     credit_score: int
     risk_grade: str             # A..F
     model_version: str
+    # Per-feature explanation: contribution = coef * WoE to the log-odds of "Good".
+    # contribution > 0 lowers risk (toward Approve); < 0 raises risk (toward default).
+    contributions: list[dict] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return asdict(self)
+
+    @property
+    def reasons_increasing_risk(self) -> list[dict]:
+        """Top adverse-action drivers (push toward default)."""
+        neg = [c for c in self.contributions if c["contribution"] < 0]
+        return sorted(neg, key=lambda c: c["contribution"])[:TOP_REASONS]
+
+    @property
+    def reasons_lowering_risk(self) -> list[dict]:
+        """Top strengths (push toward approval)."""
+        pos = [c for c in self.contributions if c["contribution"] > 0]
+        return sorted(pos, key=lambda c: c["contribution"], reverse=True)[:TOP_REASONS]
 
 
 def _risk_grade(pd_default: float) -> str:
@@ -88,6 +107,29 @@ class CreditRiskModel:
             return "Reject"
         return "Manual Review"
 
+    def _contributions(self, application: dict, features) -> list[dict]:
+        """Decompose the logit into per-feature contributions (coef * WoE).
+
+        Linear scorecard: logit(Good) = intercept + Σ coef_i * woe_i, so each
+        feature's signed contribution is directly interpretable. Sorted by
+        magnitude (largest driver first).
+        """
+        coefs = self.model.coef_[0]
+        names = list(self.model.feature_names_in_)  # same order as coef_
+        out = []
+        for name, coef in zip(names, coefs):
+            woe = float(features.iloc[0][name])
+            field_name = name[:-4] if name.endswith("_woe") else name
+            out.append({
+                "field": field_name,
+                "label": field_label(field_name),
+                "value": humanize_value(field_name, application.get(field_name)),
+                "woe": round(woe, 4),
+                "contribution": round(float(coef) * woe, 4),
+            })
+        out.sort(key=lambda c: abs(c["contribution"]), reverse=True)
+        return out
+
     # -- public API ---------------------------------------------------------
     def predict(self, application: dict) -> InferenceResult:
         features = self.pre.transform(application)
@@ -100,6 +142,7 @@ class CreditRiskModel:
             credit_score=self._score(p_good),
             risk_grade=_risk_grade(p_default),
             model_version=self.model_version,
+            contributions=self._contributions(application, features),
         )
 
 

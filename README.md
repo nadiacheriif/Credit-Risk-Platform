@@ -86,9 +86,10 @@ Credit Risk Platform/
 │   ├── model.pkl, woe_bins.pkl, feature_columns.pkl, scoring_config.pkl
 │   ├── reference.py           # raw schema + field labels (single source of truth)
 │   ├── preprocess.py          # WoE apply + feature selection (notebook parity)
-│   ├── inference.py           # probability → score → decision engine
+│   ├── inference.py           # probability → score → decision + reason codes
+│   ├── explainer.py           # local-Ollama LLM narrative (best-effort)
 │   └── mlflow_logger.py       # best-effort inference tracking
-├── templates/                 # index, result, history, health (Tailwind)
+├── templates/                 # index, result, history, health, _explanation (Tailwind + HTMX)
 ├── static/app.css
 ├── alembic/                   # versioned DB migrations
 ├── tests/                     # API, schema, notebook-parity (real Postgres)
@@ -114,9 +115,14 @@ Then open:
 | http://localhost:8000/health     | System status |
 | http://localhost:8000/docs       | OpenAPI / Swagger |
 | http://localhost:5000/           | MLflow UI |
+| http://localhost:11434/          | Ollama (LLM explainer) |
 
 Postgres is exposed on host port **5433** (container 5432) to avoid clashing with a
 local Postgres.
+
+> **First run** also starts a `ollama-init` one-shot that pulls the `llama3.2:3b`
+> model (~2 GB) into a volume — the AI explanation only appears once that finishes.
+> Everything else (decision, reason codes) works immediately regardless.
 
 ## 5. Run locally (without Docker)
 
@@ -139,7 +145,27 @@ The suite runs against a **real Postgres**: it starts an ephemeral
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Covers: API endpoints, schema validation, and notebook↔API inference parity.
+Covers: API endpoints, schema validation, notebook↔API inference parity,
+reason-code explainability, and UI rendering.
+
+---
+
+## Explainability
+
+Two layers, in strict priority:
+
+1. **Deterministic reason codes (the ground truth).** Because the model is a linear
+   scorecard, each feature's signed contribution to the decision is exactly
+   `coefficient × WoE`. The decision page shows the top drivers *increasing* and
+   *lowering* risk as bars, and `/api/predict` returns the full `contributions` list.
+2. **LLM narrative (optional, best-effort).** A **local Ollama** model turns those
+   reason codes into a plain-English summary, lazy-loaded in the UI via HTMX so the
+   slow model never blocks the decision.
+
+Guardrails: the LLM **never makes or changes the decision** — it only rephrases the
+reason codes it's given (temperature 0, no raw PII beyond the reasons). If Ollama is
+unset/unreachable/not-yet-pulled, the UI simply shows the deterministic reason codes.
+Disable entirely by leaving `OLLAMA_BASE_URL` empty.
 
 ---
 
@@ -147,11 +173,12 @@ Covers: API endpoints, schema validation, and notebook↔API inference parity.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/predict` | Score an application, persist it, return the decision |
+| POST | `/api/predict` | Score an application, persist it, return the decision **+ per-feature contributions** |
 | POST | `/api/applications` | Alias of `/api/predict` |
 | GET  | `/api/applications` | List scored applications |
 | GET  | `/api/applications/{id}` | Fetch one application + its prediction |
-| GET  | `/api/health` | Model / DB / MLflow status |
+| GET  | `/api/applications/{id}/explanation` | Reason codes + (best-effort) LLM narrative |
+| GET  | `/api/health` | Model / DB / MLflow / explainer status |
 
 ```bash
 curl -X POST http://localhost:8000/api/predict -H "Content-Type: application/json" \

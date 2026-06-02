@@ -32,18 +32,49 @@ services:
       timeout: 5s
       retries: 10
 
+  # Local LLM for the (best-effort) explanation layer. The decision never depends
+  # on it; if it's down, the UI shows the deterministic reason codes.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: pulls the model into the ollama volume, then exits.
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "llama3.2:3b"]
+    restart: "no"
+    volumes:
+      - ollama_data:/root/.ollama
+
   api:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg2://credit:credit@postgres:5432/credit_risk
       MLFLOW_TRACKING_URI: http://mlflow:5000
       MLFLOW_EXPERIMENT: credit-risk-inference
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.2:3b
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       mlflow:
+        condition: service_started
+      ollama:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health || exit 1"]
@@ -54,3 +85,4 @@ services:
 volumes:
   pg_data:
   mlflow_data:
+  ollama_data:

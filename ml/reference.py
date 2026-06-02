@@ -109,15 +109,18 @@ CATEGORICAL_FIELDS: dict[str, dict[str, str]] = {
     },
 }
 
-# Numeric fields: label, bounds (from notebook policy asserts), default
+# Numeric fields: label, bounds, default, help.
+# NB: `installment_rate` and `residence` are ORDINAL codes (1-4), not free counts —
+# the German Credit data only contains values 1..4 for them and the WoE was fit on
+# those levels, so the bounds reflect the variable's real domain (not a UI choice).
 NUMERIC_FIELDS: dict[str, dict] = {
-    "duration":         {"label": "Loan duration (months)",          "min": 1,   "max": 120,    "default": 24},
-    "credit_amount":    {"label": "Credit amount (DM)",              "min": 1,   "max": 100000, "default": 5000},
-    "installment_rate": {"label": "Installment rate (% of income)",  "min": 1,   "max": 4,      "default": 2},
-    "residence":        {"label": "Present residence since (years)", "min": 1,   "max": 4,      "default": 2},
-    "age":              {"label": "Age (years)",                     "min": 18,  "max": 120,    "default": 35},
-    "credit_cards":     {"label": "Existing credits at this bank",   "min": 0,   "max": 10,     "default": 1},
-    "dependents":       {"label": "People liable for maintenance",   "min": 0,   "max": 10,     "default": 1},
+    "duration":         {"label": "Loan duration (months)",               "min": 1,   "max": 120,    "default": 24,   "help": "Repayment term of the loan, in months."},
+    "credit_amount":    {"label": "Credit amount (DM)",                   "min": 1,   "max": 100000, "default": 5000, "help": "Requested loan amount in Deutsche Marks."},
+    "installment_rate": {"label": "Installment rate (band 1–4)",          "min": 1,   "max": 4,      "default": 2,    "help": "Installment as % of disposable income, banded 1 (low) to 4 (high)."},
+    "residence":        {"label": "Time at current residence (band 1–4)", "min": 1,   "max": 4,      "default": 2,    "help": "Tenure at current address, banded 1 (shortest) to 4 (longest) — not a number of years."},
+    "age":              {"label": "Age (years)",                          "min": 18,  "max": 120,    "default": 35,   "help": "Applicant age in years."},
+    "credit_cards":     {"label": "Existing credits at this bank",        "min": 0,   "max": 10,     "default": 1,    "help": "Number of existing credits held at this bank."},
+    "dependents":       {"label": "People liable for maintenance",        "min": 0,   "max": 10,     "default": 1,    "help": "Number of people the applicant financially supports."},
 }
 
 # UI grouping (banking-style sections)
@@ -157,6 +160,22 @@ CATEGORICAL_LABELS = {
     "phone": "Telephone",
     "foreign_worker": "Foreign worker",
 }
+
+
+def field_label(field: str) -> str:
+    """Human-readable label for a raw field (categorical or numeric)."""
+    if field in CATEGORICAL_LABELS:
+        return CATEGORICAL_LABELS[field]
+    if field in NUMERIC_FIELDS:
+        return NUMERIC_FIELDS[field]["label"]
+    return field.replace("_", " ").title()
+
+
+def humanize_value(field: str, value) -> str:
+    """Human-readable value: map categorical A-codes to labels, pass numerics through."""
+    if field in CATEGORICAL_FIELDS:
+        return CATEGORICAL_FIELDS[field].get(value, str(value))
+    return str(value)
 
 
 def example_application() -> dict:

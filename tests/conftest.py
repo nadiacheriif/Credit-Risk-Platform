@@ -25,6 +25,7 @@ if not _dsn:
 
 os.environ["DATABASE_URL"] = _dsn
 os.environ["MLFLOW_TRACKING_URI"] = ""
+os.environ["OLLAMA_BASE_URL"] = ""  # explainer disabled in tests (no LLM dependency)
 
 from fastapi.testclient import TestClient  # noqa: E402
 

@@ -7,14 +7,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import Application, Prediction
-from ml.inference import get_engine
+from ml.inference import InferenceResult, get_engine
 from ml.mlflow_logger import log_inference
 
 
-def run_prediction(db: Session, application_data: dict) -> tuple[Application, Prediction]:
-    """Predict, persist application + prediction, and log to MLflow.
+def run_prediction(db: Session, application_data: dict) -> tuple[Application, InferenceResult]:
+    """Predict, persist application + prediction, log to MLflow.
 
-    Returns the persisted (Application, Prediction) pair.
+    Returns the persisted Application and the full InferenceResult (which carries
+    the per-feature contributions used for explanations).
     """
     engine = get_engine()
 
@@ -35,10 +36,9 @@ def run_prediction(db: Session, application_data: dict) -> tuple[Application, Pr
     db.add(prediction)
     db.commit()
     db.refresh(application)
-    db.refresh(prediction)
 
     log_inference(application_data, result.as_dict(), latency_ms)
-    return application, prediction
+    return application, result
 
 
 def list_applications(db: Session, limit: int = 100) -> list[tuple[Application, Prediction]]:

@@ -19,6 +19,7 @@
       ('Model loaded', 'yes' if model_loaded else 'no'),
       ('Database', database),
       ('MLflow tracking', mlflow),
+      ('LLM explainer', explainer),
     ] %}
     {% for label, value in rows %}
     <div class="flex justify-between py-3">

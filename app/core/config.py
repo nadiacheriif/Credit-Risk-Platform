@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Database — PostgreSQL is the system of record. This default matches the
     # docker-compose `postgres` service; override with DATABASE_URL when running
-    # outside compose. (The fast unit tests point this at sqlite via env.)
+    # outside compose. (Tests point this at an ephemeral Postgres container.)
     database_url: str = (
         "postgresql+psycopg2://credit:credit@postgres:5432/credit_risk"
     )
@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     # MLflow — empty string disables tracking gracefully.
     mlflow_tracking_uri: str = ""
     mlflow_experiment: str = "credit-risk-inference"
+
+    # Ollama LLM explainer — empty base URL disables it gracefully (the UI then
+    # shows only the deterministic reason codes). docker-compose sets this.
+    ollama_base_url: str = ""
+    ollama_model: str = "llama3.2:3b"
+    ollama_timeout_s: float = 30.0
 
     # Artifact locations
     ml_dir: Path = ROOT_DIR / "ml"
